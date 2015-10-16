@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context.xsd
+     http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+     http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <context:property-placeholder location="classpath:bitronix-ds.properties"/>
+
+    <context:annotation-config />
+
+    <tx:annotation-driven />
+
+    <context:component-scan base-package="mybatis.spring.jta" />
+
+    <bean id="btmConfig" factory-method="getConfiguration" class="bitronix.tm.TransactionManagerServices">
+        <property name="serverId" value="${bitronix.tm.serverId}" />
+        <property name="logPart1Filename" value="${bitronix.tm.journal.disk.logPart1Filename}" />
+        <property name="logPart2Filename" value="${bitronix.tm.journal.disk.logPart2Filename}" />
+    </bean>
+
+    <!-- create BTM transaction manager -->
+    <bean id="bitronixTransactionManager" factory-method="getTransactionManager" class="bitronix.tm.TransactionManagerServices"
+          depends-on="btmConfig" destroy-method="shutdown" />
+
+    <bean id="transactionManager" class="org.springframework.transaction.jta.JtaTransactionManager" primary="true">
+        <property name="transactionManager" ref="bitronixTransactionManager" />
+        <property name="userTransaction" ref="bitronixTransactionManager" />
+    </bean>
+
+    <bean id="ds1" class="bitronix.tm.resource.jdbc.PoolingDataSource" init-method="init"
+          destroy-method="close">
+
+        <property name="uniqueName" value="${resource.ds1.uniqueName}" />
+        <property name="className" value="${resource.ds1.className}" />
+        <property name="maxPoolSize" value="${resource.ds1.maxPoolSize}" />
+        <property name="testQuery" value="${resource.ds1.testQuery}" />
+        <property name="allowLocalTransactions" value="${resource.ds1.allowLocalTransactions}" />
+        <property name="driverProperties">
+            <props>
+                <prop key="user">${resource.ds1.driverProperties.user}</prop>
+                <prop key="password">${resource.ds1.driverProperties.password}</prop>
+                <prop key="driverType">${resource.ds1.driverProperties.driverType}</prop>
+                <prop key="databaseName">${resource.ds1.driverProperties.databaseName}</prop>
+                <prop key="serverName">${resource.ds1.driverProperties.serverName}</prop>
+                <prop key="portNumber">${resource.ds1.driverProperties.portNumber}</prop>
+                <prop key="currentSQLID">${resource.ds1.driverProperties.currentSQLID}</prop>
+            </props>
+        </property>
+
+    </bean>
+
+    <bean id="ds2" class="bitronix.tm.resource.jdbc.PoolingDataSource" init-method="init"
+          destroy-method="close">
+
+        <property name="uniqueName" value="${resource.ds2.uniqueName}" />
+        <property name="className" value="${resource.ds1.className}" />
+        <property name="maxPoolSize" value="${resource.ds1.maxPoolSize}" />
+        <property name="testQuery" value="${resource.ds1.testQuery}" />
+        <property name="allowLocalTransactions" value="${resource.ds1.allowLocalTransactions}" />
+        <property name="driverProperties">
+            <props>
+                <prop key="user">${resource.ds1.driverProperties.user}</prop>
+                <prop key="password">${resource.ds1.driverProperties.password}</prop>
+                <prop key="driverType">${resource.ds1.driverProperties.driverType}</prop>
+                <prop key="databaseName">${resource.ds1.driverProperties.databaseName}</prop>
+                <prop key="serverName">${resource.ds1.driverProperties.serverName}</prop>
+                <prop key="portNumber">${resource.ds1.driverProperties.portNumber}</prop>
+                <prop key="currentSQLID">${resource.ds2.driverProperties.currentSQLID}</prop>
+            </props>
+        </property>
+
+    </bean>
+
+    <bean id="sqlSessionFactory1" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="ds1" />
+        <!--<property name="typeAliasesPackage" value="org.mybatis.jpetstore.domain" />-->
+    </bean>
+
+    <bean id="sqlSessionFactory2" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="ds2" />
+        <!--<property name="typeAliasesPackage" value="org.mybatis.jpetstore.domain" />-->
+    </bean>
+
+    <bean id="schema1Mapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
+        <property name="mapperInterface" value="mybatis.spring.persistence.Schema1MapperJta" />
+        <property name="sqlSessionFactory" ref="sqlSessionFactory1" />
+    </bean>
+
+    <bean id="schema2Mapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
+        <property name="mapperInterface" value="mybatis.spring.persistence.Schema2MapperJta" />
+        <property name="sqlSessionFactory" ref="sqlSessionFactory2" />
+    </bean>
+
+</beans>

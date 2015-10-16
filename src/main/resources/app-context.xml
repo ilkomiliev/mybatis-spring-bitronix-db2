@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context.xsd
+     http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+     http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc.xsd
+     http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+
+    <context:annotation-config />
+
+    <jdbc:embedded-database id="ds1">
+        <jdbc:script location="classpath:hsqldb-schema1.sql"/>
+    </jdbc:embedded-database>
+
+    <jdbc:embedded-database id="ds2">
+        <jdbc:script location="classpath:hsqldb-schema2.sql"/>
+    </jdbc:embedded-database>
+
+    <tx:annotation-driven />
+
+    <context:component-scan base-package="mybatis.spring.service" />
+
+    <bean id="transactionManager1" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="ds1" />
+    </bean>
+
+    <bean id="transactionManager2" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="ds2" />
+    </bean>
+
+    <bean id="transactionManager" class="org.springframework.data.transaction.ChainedTransactionManager">
+        <constructor-arg>
+            <list>
+                <ref bean="transactionManager1"/>
+                <ref bean="transactionManager2"/>
+            </list>
+        </constructor-arg>
+    </bean>
+
+    <bean id="sqlSessionFactory1" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="ds1" />
+        <!--<property name="typeAliasesPackage" value="org.mybatis.jpetstore.domain" />-->
+    </bean>
+
+    <bean id="sqlSessionFactory2" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="ds2" />
+        <!--<property name="typeAliasesPackage" value="org.mybatis.jpetstore.domain" />-->
+    </bean>
+
+    <bean id="schema1Mapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
+        <property name="mapperInterface" value="mybatis.spring.persistence.Schema1Mapper" />
+        <property name="sqlSessionFactory" ref="sqlSessionFactory1" />
+    </bean>
+
+    <bean id="schema2Mapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
+        <property name="mapperInterface" value="mybatis.spring.persistence.Schema2Mapper" />
+        <property name="sqlSessionFactory" ref="sqlSessionFactory2" />
+    </bean>
+
+    <!--<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">-->
+        <!--<property name="basePackage" value="mybatis.spring.persistence" />-->
+    <!--</bean>-->
+
+</beans>
